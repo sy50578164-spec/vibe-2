@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>파스텔 트래블러 - 구글맵 & AI 추천 통합 계획기</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nanum Gothic', sans-serif;
+      background-color: #f7f9fa;
+    }
+    .fancy-font {
+      font-family: 'Gaegu', cursive;
+    }
+    :root {
+      --pastel-pink: #FFD1DC;
+      --pastel-blue: #CDE9FF;
+      --pastel-green: #D4F0F0;
+      --pastel-yellow: #FFF5BA;
+      --pastel-purple: #E8D7FF;
+      --pastel-orange: #FFE5D9;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @keyframes train-bounce {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(1deg); }
+    }
+    .animate-train {
+      animation: train-bounce 3s infinite ease-in-out;
+    }
+    @keyframes float-cloud {
+      0% { transform: translateX(-10%); }
+      50% { transform: translateX(10%); }
+      100% { transform: translateX(-10%); }
+    }
+    .animate-cloud {
+      animation: float-cloud 8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800">
+
+  <!-- 헤더 영역 -->
+  <header class="relative overflow-hidden bg-gradient-to-r from-[#CDE9FF] via-[#FFD1DC] to-[#FFE5D9] border-b border-white/40 shadow-sm">
+    <div class="absolute top-2 left-[10%] opacity-40 animate-cloud pointer-events-none">
+      <i class="fa-solid fa-cloud text-white text-4xl"></i>
+    </div>
+    <div class="absolute top-8 right-[15%] opacity-30 animate-cloud pointer-events-none" style="animation-delay: 2s;">
+      <i class="fa-solid fa-cloud text-white text-5xl"></i>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+      <div class="flex items-center gap-4">
+        <div class="relative flex items-center justify-center bg-white/70 p-3 rounded-2xl shadow-inner border border-white/60 animate-train">
+          <i class="fa-solid fa-train text-3xl text-pink-400 mr-1"></i>
+          <i class="fa-solid fa-suitcase-rolling text-2xl text-blue-400"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="fancy-font text-2xl md:text-3xl font-bold text-pink-600 tracking-wider">파스텔 트래블러</span>
+            <span class="bg-white/80 text-blue-600 text-xs font-bold px-2 py-0.5 rounded-full border border-blue-200">Google Map & Reviews Edition</span>
+          </div>
+          <p class="text-xs md:text-sm text-slate-600 font-medium mt-1">실제 구글맵과 실시간 별점 추천으로 떠나는 스마트 기차 여행 🌸✨</p>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+        <div class="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white flex items-center gap-2 w-full sm:w-auto">
+          <i class="fa-solid fa-map-location-dot text-pink-400 text-lg"></i>
+          <input type="text" id="trip-title-input" value="설레는 우리의 부산 파스텔 기차 여행 🚂" class="bg-transparent font-bold text-slate-700 outline-none w-full sm:w-48 text-sm focus:border-b focus:border-slate-400" placeholder="여행 제목을 지어보세요">
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openTutorial()" class="bg-white/90 hover:bg-white text-slate-600 text-sm px-3 py-2 rounded-xl border border-slate-200 transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-regular fa-lightbulb text-amber-400"></i> 도움말
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 레이아웃 -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    
+    <!-- 1. 좌측 컨트롤러 (4 cols) -->
+    <section class="lg:col-span-4 flex flex-col gap-6">
+      
+      <!-- [카드 A] 구글 맵 키 입력 & 설정 -->
+      <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-2 bg-[#CDE9FF]"></div>
+        <h2 class="text-sm font-bold text-slate-700 flex items-center justify-between mb-3">
+          <span><i class="fa-solid fa-gears text-blue-400 mr-1.5"></i>지도 설정</span>
+          <span class="text-[10px] text-blue-500 font-bold bg-blue-50 px-2 py-0.5 rounded">Google API</span>
+        </h2>
+        <div class="space-y-2 text-xs">
+          <p class="text-slate-500 leading-relaxed">구글맵 API Key를 입력하시면 워터마크 없이 더욱 정확한 지리 검색 및 연동 지도를 사용할 수 있습니다. (없어도 개발용 모드로 기본 동작합니다)</p>
+          <div class="flex gap-2">
+            <input type="password" id="gmaps-api-key" placeholder="Google Maps API Key 입력" class="flex-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100">
+            <button onclick="saveAndReloadMap()" class="bg-[#CDE9FF] hover:bg-[#b5dcff] text-blue-700 font-bold px-3 py-2 rounded-xl transition">적용</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- [카드 B] 팀원 관리 보드 -->
+      <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-2 bg-[#E8D7FF]"></div>
+        
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-bold flex items-center gap-2 text-slate-700">
+            <i class="fa-solid fa-user-group text-purple-400"></i>
+            함께 떠나는 멤버들 <span class="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full" id="member-count">0명</span>
+          </h2>
+          <span class="text-xs text-slate-400">기차 탑승원</span>
+        </div>
+
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="member-name-input" placeholder="팀원 이름 입력" class="flex-1 text-sm bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-200 transition" onkeypress="if(event.key === 'Enter') addMember()">
+          <button onclick="addMember()" class="bg-[#E8D7FF] hover:bg-[#d8c3f7] text-purple-700 font-bold px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-1">
+            <i class="fa-solid fa-plus"></i> 탑승
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-2 max-h-24 overflow-y-auto pr-1" id="members-list">
+          <!-- JS 동적 로딩 -->
+        </div>
+      </div>
+
+      <!-- [카드 C] 새 장소 추가 -->
+      <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-2 bg-[#FFD1DC]"></div>
+
+        <h2 class="text-base font-bold text-slate-700 flex items-center gap-2 mb-4">
+          <i class="fa-solid fa-map-pin text-pink-400"></i>
+          코스 장소 추가하기
+        </h2>
+
+        <div class="space-y-3.5 text-sm">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">📍 장소 이름</label>
+            <input type="text" id="place-name" placeholder="예: 부산역 KTX, 초량밀면" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-pink-200 transition">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1.5">🏷️ 카테고리</label>
+            <div class="grid grid-cols-5 gap-1.5">
+              <button onclick="selectCategory('restaurant')" id="cat-restaurant" class="cat-btn flex flex-col items-center p-2 rounded-xl bg-slate-50 border border-slate-100 transition hover:bg-slate-100">
+                <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background-color: var(--pastel-orange);"><i class="fa-solid fa-utensils text-orange-600"></i></span>
+                <span class="text-[10px] text-slate-500 mt-1">식당</span>
+              </button>
+              <button onclick="selectCategory('cafe')" id="cat-cafe" class="cat-btn flex flex-col items-center p-2 rounded-xl bg-slate-50 border border-slate-100 transition hover:bg-slate-100">
+                <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background-color: var(--pastel-yellow);"><i class="fa-solid fa-mug-hot text-amber-600"></i></span>
+                <span class="text-[10px] text-slate-500 mt-1">카페</span>
+              </button>
+              <button onclick="selectCategory('spot')" id="cat-spot" class="cat-btn flex flex-col items-center p-2 rounded-xl bg-slate-50 border border-slate-100 transition hover:bg-slate-100">
+                <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background-color: var(--pastel-green);"><i class="fa-solid fa-camera text-teal-600"></i></span>
+                <span class="text-[10px] text-slate-500 mt-1">관광지</span>
+              </button>
+              <button onclick="selectCategory('hotel')" id="cat-hotel" class="cat-btn flex flex-col items-center p-2 rounded-xl bg-slate-50 border border-slate-100 transition hover:bg-slate-100">
+                <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background-color: var(--pastel-purple);"><i class="fa-solid fa-bed text-purple-600"></i></span>
+                <span class="text-[10px] text-slate-500 mt-1">숙소</span>
+              </button>
+              <button onclick="selectCategory('etc')" id="cat-etc" class="cat-btn flex flex-col items-center p-2 rounded-xl bg-slate-50 border border-slate-100 transition hover:bg-slate-100">
+                <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background-color: var(--pastel-blue);"><i class="fa-solid fa-compass text-blue-600"></i></span>
+                <span class="text-[10px] text-slate-500 mt-1">기타</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">🙋 담당/방문 팀원 선택</label>
+            <div class="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[44px]" id="place-members-selector">
+              <span class="text-xs text-slate-400 py-1 px-1">팀원을 먼저 생성해주세요</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-0.5">🕐 방문 예상시간</label>
+              <input type="text" id="place-time" placeholder="예: 13:00~14:30" class="w-full bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 focus:outline-none text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-0.5">💵 예상 회비/경비</label>
+              <input type="number" id="place-cost" placeholder="원 단위 입력" class="w-full bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 focus:outline-none text-xs">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-0.5">📝 간단 메모/할 일</label>
+            <input type="text" id="place-memo" placeholder="시그니처 메뉴 주문하기 등" class="w-full bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 focus:outline-none text-xs">
+          </div>
+
+          <button onclick="addNewPlace()" class="w-full bg-[#FFD1DC] hover:bg-[#ffbfcd] text-pink-700 font-extrabold py-2.5 rounded-xl transition shadow-sm hover:shadow flex items-center justify-center gap-1">
+            <i class="fa-solid fa-location-crosshairs"></i> 지도에 코스 추가하기
+          </button>
+        </div>
+      </div>
+
+      <!-- [카드 D] 코스 전체 브리핑 요약 (파스텔 옐로우 테마) -->
+      <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-2 bg-[#FFF5BA]"></div>
+        <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2 mb-3">
+          <i class="fa-solid fa-chart-pie text-amber-400"></i> 코스 전체 브리핑
+        </h2>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="bg-[#FFF5BA]/30 p-2.5 rounded-xl border border-amber-100">
+            <p class="text-slate-500 mb-0.5">총 등록 장소</p>
+            <p class="text-base font-extrabold text-amber-700" id="total-places-summary">0개 코스</p>
+          </div>
+          <div class="bg-[#CDE9FF]/30 p-2.5 rounded-xl border border-blue-100">
+            <p class="text-slate-500 mb-0.5">총 예상 공통경비</p>
+            <p class="text-base font-extrabold text-blue-700" id="total-cost-summary">0 원</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 2. 우측 메인 영역 (8 cols) -->
+    <section class="lg:col-span-8 flex flex-col gap-6">
+
+      <!-- [구글 지도 플레이스] 실제 구글 맵 연동 인터페이스 -->
+      <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm relative flex flex-col gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-700 flex items-center gap-2">
+              <i class="fa-solid fa-compass text-blue-400"></i>
+              팀 파스텔 트래블 구글 라이브 맵 <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">Google Maps Live</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">지도를 더블클릭하여 임의 위치에 마커를 생성하거나 마커를 길게 누른 채 이동시킬 수 있습니다.</p>
+          </div>
+
+          <!-- 경로 최적화 옵션 스위처 -->
+          <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-semibold self-start sm:self-auto">
+            <button onclick="setRouteMode('step')" id="route-mode-step" class="route-tab px-3 py-1.5 rounded-lg bg-white shadow-sm text-slate-700 transition">
+              <i class="fa-solid fa-arrow-trend-up"></i> 등록순 경로
+            </button>
+            <button onclick="setRouteMode('optimal')" id="route-mode-optimal" class="route-tab px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-700 transition">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> 최단거리 최적화
+            </button>
+          </div>
+        </div>
+
+        <!-- 지도 본체 컨테이너 -->
+        <div class="relative w-full h-[450px] rounded-2xl overflow-hidden border border-blue-100 shadow-inner" id="map-container-box">
+          <!-- 실제 구글 지도가 장착되는 DIV -->
+          <div id="google-map" class="w-full h-full bg-[#eef8ff]"></div>
+          
+          <!-- 로딩 안내 스피너 -->
+          <div id="map-loading-indicator" class="absolute inset-0 bg-white/70 flex flex-col items-center justify-center z-40 transition-opacity pointer-events-none hidden">
+            <div class="relative w-12 h-12">
+              <div class="absolute inset-0 rounded-full border-4 border-t-pink-400 border-r-transparent border-slate-200 animate-spin"></div>
+            </div>
+            <p class="text-xs font-bold text-slate-600 mt-3">구글 지도를 갱신하는 중...</p>
+          </div>
+        </div>
+
+        <!-- 경로 설명 및 예상 시간 패널 -->
+        <div id="route-info-panel" class="bg-[#f8fafc] border border-slate-200 rounded-2xl p-4 flex flex-col gap-3">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span id="route-badge" class="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                <i class="fa-solid fa-route"></i> 실제 위경도 기반 추천 동선
+              </span>
+              <span class="text-xs text-slate-400" id="route-type-label">등록된 순서대로의 이동거리 측정 결과입니다.</span>
+            </div>
+            <button onclick="clearAllPlaces()" class="text-xs text-red-400 hover:text-red-500 font-bold transition flex items-center gap-1">
+              <i class="fa-solid fa-trash-can"></i> 전체 경로 초기화
+            </button>
+          </div>
+
+          <!-- 가상의 경로 메트릭 -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500"><i class="fa-solid fa-car"></i></span>
+              <div>
+                <p class="text-slate-400">자동차 이동 시간</p>
+                <p class="font-bold text-slate-700 text-sm" id="car-time">0분</p>
+              </div>
+            </div>
+            <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500"><i class="fa-solid fa-bicycle"></i></span>
+              <div>
+                <p class="text-slate-400">자전거 이동 시간</p>
+                <p class="font-bold text-slate-700 text-sm" id="bike-time">0분</p>
+              </div>
+            </div>
+            <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-500"><i class="fa-solid fa-person-walking"></i></span>
+              <div>
+                <p class="text-slate-400">도보 이동 시간</p>
+                <p class="font-bold text-slate-700 text-sm" id="walk-time">0분</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- [신규 핵심 추가 카드] 구글 리뷰 높은 순 추천 명소/식당 검색대 -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden flex flex-col gap-4">
+        <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-200 to-orange-300"></div>
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-bold text-slate-700 flex items-center gap-2">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+              실시간 구글 리뷰 높은 순 대세 맛집 & 관광지 추천
+            </h2>
+            <p class="text-xs text-slate-400">구글의 실시간 검색 기술을 통해 별점이 가장 높은 인증된 명소를 긁어옵니다.</p>
+          </div>
+          <span class="text-[10px] font-extrabold bg-amber-100 text-amber-700 px-2 py-1 rounded-md self-start sm:self-auto"><i class="fa-solid fa-magnifying-glass"></i> Google Search grounded</span>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" id="recommendation-location" placeholder="어느 지역의 구글 대세를 알아볼까요? (예: 부산 해운대, 서울 홍대, 제주 협재)" class="flex-1 text-sm bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-200 transition">
+          <button onclick="fetchGoogleRecommendations()" id="btn-fetch-recs" class="bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white font-extrabold px-6 py-2.5 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-bolt"></i> 구글리뷰 명소 추천 받기
+          </button>
+        </div>
+
+        <!-- 추천 결과 그리드 스페이스 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2" id="recs-results-container">
+          <!-- 기본 상태 플레이스홀더 -->
+          <div class="md:col-span-2 text-center py-8 text-slate-400 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+            <i class="fa-solid fa-ranking-star text-4xl mb-2 text-amber-200"></i>
+            <p class="text-xs font-bold text-slate-500">지정된 여행지를 기반으로 실시간 구글링 추천 리스트를 받아보세요!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- [코스 리스트] 상세 타임라인 / 카드 리스트 -->
+      <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-timeline text-pink-400"></i>
+            코스 상세 타임라인
+          </h2>
+          <span class="text-xs text-slate-400">지도의 핀을 이동하거나 카드를 수정하면 정보가 동기화됩니다.</span>
+        </div>
+
+        <!-- 여행 코스 목록 목록 -->
+        <div class="space-y-3" id="timeline-list">
+          <div class="text-center py-12 text-slate-400">
+            <i class="fa-solid fa-map-location text-4xl mb-3 text-slate-200"></i>
+            <p class="text-sm font-semibold">아직 추가된 코스 일정이 없습니다.</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- 가상 도움말 모달 -->
+  <div id="tutorial-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 border border-slate-100 shadow-2xl relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-3 bg-[#E8D7FF]"></div>
+
+      <div class="flex items-center justify-between mb-4 mt-1">
+        <h3 class="text-lg font-bold text-slate-700 flex items-center gap-1.5 fancy-font">
+          🚂 구글맵 탑재 계획기 활용법
+        </h3>
+        <button onclick="closeTutorial()" class="text-slate-400 hover:text-slate-600 transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
+        <p class="font-semibold text-slate-700 text-sm">실제 구글 맵 위에서 팀원들의 기차 여행 코스를 자유자재로 구성하세요.</p>
+        
+        <div class="flex gap-3">
+          <span class="w-6 h-6 rounded-full bg-[#E8D7FF] text-purple-700 font-extrabold flex items-center justify-center flex-shrink-0">1</span>
+          <div>
+            <p class="font-bold text-slate-700">구글 실시간 리뷰 대세 맛집 검색</p>
+            <p class="mt-0.5">원하는 도시명(예: "부산 해운대", "제주 서귀포")을 검색창에 입력하면, 구글 별점 4.5 이상인 진짜 맛집과 핫플 정보가 정밀 소싱됩니다.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <span class="w-6 h-6 rounded-full bg-[#FFD1DC] text-pink-700 font-extrabold flex items-center justify-center flex-shrink-0">2</span>
+          <div>
+            <p class="font-bold text-slate-700">실시간 연동 마커 드래깅</p>
+            <p class="mt-0.5">구글 맵 상에 생성된 핀 마커는 마우스로 꾹 누르고 드래그하여 임의 위치로 지형 이동 및 변경이 가능합니다.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <span class="w-6 h-6 rounded-full bg-[#FFF5BA] text-amber-700 font-extrabold flex items-center justify-center flex-shrink-0">3</span>
+          <div>
+            <p class="font-bold text-slate-700">최단거리 최적화 경로 안내</p>
+            <p class="mt-0.5">상단 옵션에서 최단거리 최적화를 선택하면, 마커 위치 간 실제 구형 거리를 연산하여 가장 군더더기 없는 최단 이동 순서 가이드를 도출합니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="closeTutorial()" class="w-full mt-6 bg-[#CDE9FF] hover:bg-[#b0dcff] text-blue-700 font-extrabold py-2.5 rounded-xl text-sm transition">
+        확인했습니다! 계획하러 가기 🌸
+      </button>
+    </div>
+  </div>
+
+  <!-- 푸터 영역 -->
+  <footer class="bg-white border-t border-slate-100 py-6 mt-12 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-suitcase text-pink-300"></i>
+        <span>파스텔 봄빛 구글 리뷰 연동 로드맵 시스템 v2.0</span>
+      </div>
+      <div>
+        <p>© 2026 Pastel Traveler. Powered by Google Maps & Gemini API 🌸🚃</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 스크립트 영역 -->
+  <script>
+    // 상태 관리 (State)
+    let appState = {
+      apiKey: localStorage.getItem('gmaps_api_key') || '',
+      members: ["민우", "서연", "지호", "하은"],
+      places: [
+        {
+          id: "place-1",
+          name: "출발역: 부산역 KTX",
+          category: "etc",
+          lat: 35.1152,
+          lng: 129.0422,
+          time: "10:30 도착",
+          cost: 15000,
+          memo: "다같이 대합실 시계탑 앞 집결!",
+          assignedMembers: ["민우", "서연", "지호", "하은"]
+        },
+        {
+          id: "place-2",
+          name: "초량밀면 본점",
+          category: "restaurant",
+          lat: 35.1165,
+          lng: 129.0395,
+          time: "11:30 ~ 12:30",
+          cost: 45000,
+          memo: "만두랑 비빔밀면 필수 주문",
+          assignedMembers: ["민우", "지호", "하은"]
+        },
+        {
+          id: "place-3",
+          name: "영도 흰여울 해안카페",
+          category: "cafe",
+          lat: 35.0785,
+          lng: 129.0440,
+          time: "13:00 ~ 14:30",
+          cost: 32000,
+          memo: "노을 보기 좋은 창가자리 선점하기",
+          assignedMembers: ["서연", "하은"]
+        },
+        {
+          id: "place-4",
+          name: "해운대 해수욕장 산책로",
+          category: "spot",
+          lat: 35.1587,
+          lng: 129.1603,
+          time: "15:00 ~ 17:00",
+          cost: 0,
+          memo: "단체 사진 찍고 모래성 쌓기",
+          assignedMembers: ["민우", "서연", "지호", "하은"]
+        }
+      ],
+      selectedCategory: "restaurant",
+      selectedMembersForNewPlace: [],
+      routeMode: "step",
+      mapInstance: null,
+      mapMarkers: [],
+      mapPolylines: []
+    };
+
+    const categoryMeta = {
+      restaurant: { icon: "fa-utensils", color: "#FFE5D9", darkColor: "#EA580C", name: "식당" },
+      cafe: { icon: "fa-mug-hot", color: "#FFF5BA", darkColor: "#D97706", name: "카페" },
+      spot: { icon: "fa-camera", color: "#D4F0F0", darkColor: "#0D9488", name: "관광지" },
+      hotel: { icon: "fa-bed", color: "#E8D7FF", darkColor: "#9333EA", name: "숙소" },
+      etc: { icon: "fa-compass", color: "#CDE9FF", darkColor: "#2563EB", name: "기타" }
+    };
+
+    const pastelMapStyle = [
+      { "elementType": "geometry", "stylers": [{ "color": "#f8fafc" }] },
+      { "elementType": "labels.icon", "stylers": [{ "visibility": "simplified" }, { "opacity": 50 }] },
+      { "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
+      { "elementType": "labels.text.stroke", "stylers": [{ "color": "#ffffff" }] },
+      { "featureType": "landscape.man_made", "elementType": "geometry", "stylers": [{ "color": "#f1f5f9" }] },
+      { "featureType": "landscape.natural", "elementType": "geometry", "stylers": [{ "color": "#f0fdf4" }] },
+      { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#ecfdf5" }] },
+      { "featureType": "road", "elementType": "geometry.solid", "stylers": [{ "color": "#ffffff" }] },
+      { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#ffe5d9" }] },
+      { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#e0f2fe" }] },
+      { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#0284c7" }] }
+    ];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (appState.apiKey) {
+        document.getElementById('gmaps-api-key').value = appState.apiKey;
+      }
+      initApp();
+      loadGoogleMapsAPI();
+    });
+
+    function initApp() {
+      selectCategory(appState.selectedCategory);
+      renderMembers();
+      renderNewPlaceMembersSelector();
+      renderTimeline();
+    }
+
+    function loadGoogleMapsAPI() {
+      const existingScript = document.getElementById('gmaps-script-tag');
+      if (existingScript) existingScript.remove();
+
+      const script = document.createElement('script');
+      script.id = 'gmaps-script-tag';
+      const apiKeyParam = appState.apiKey ? `key=${appState.apiKey}&` : '';
+      script.src = `https://maps.googleapis.com/maps/api/js?${apiKeyParam}callback=initGoogleMapInstance`;
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => {
+        showFloatingToast("구글 맵 라이브러리를 불러오지 못했습니다. 네트워크를 확인하세요.");
+      };
+      document.head.appendChild(script);
+    }
+
+    window.initGoogleMapInstance = function() {
+      console.log("Google Maps initialized.");
+      initMapDOM();
+    }
+
+    function initMapDOM() {
+      const container = document.getElementById('google-map');
+      if (!container) return;
+
+      let centerLat = 35.1152;
+      let centerLng = 129.0422;
+      
+      if (appState.places.length > 0) {
+        const sumLat = appState.places.reduce((acc, p) => acc + p.lat, 0);
+        const sumLng = appState.places.reduce((acc, p) => acc + p.lng, 0);
+        centerLat = sumLat / appState.places.length;
+        centerLng = sumLng / appState.places.length;
+      }
+
+      appState.mapInstance = new google.maps.Map(container, {
+        center: { lat: centerLat, lng: centerLng },
+        zoom: 12,
+        styles: pastelMapStyle,
+        disableDefaultUI: false,
+        mapTypeControl: false,
+        zoomControl: true,
+        streetViewControl: false
+      });
+
+      appState.mapInstance.addListener('dblclick', (event) => {
+        const clickLat = event.latLng.lat();
+        const clickLng = event.latLng.lng();
+        quickCreatePlaceAtLatLng(clickLat, clickLng);
+      });
+
+      drawMapElements();
+    }
+
+    function saveAndReloadMap() {
+      const key = document.getElementById('gmaps-api-key').value.trim();
+      appState.apiKey = key;
+      localStorage.setItem('gmaps_api_key', key);
+      showFloatingToast("구글 맵 API 설정을 업데이트했습니다. 지도를 재설정합니다!");
+      loadGoogleMapsAPI();
+    }
+
+    function drawMapElements() {
+      if (!appState.mapInstance) return;
+
+      appState.mapMarkers.forEach(marker => marker.setMap(null));
+      appState.mapMarkers = [];
+      appState.mapPolylines.forEach(line => line.setMap(null));
+      appState.mapPolylines = [];
+
+      const ordered = getOrderedPlaces();
+      if (ordered.length === 0) {
+        updateTransitMetrics(0);
+        return;
+      }
+
+      const bounds = new google.maps.LatLngBounds();
+
+      ordered.forEach((place, index) => {
+        const meta = categoryMeta[place.category] || categoryMeta.etc;
+        const position = { lat: place.lat, lng: place.lng };
+        bounds.extend(position);
+
+        const svgMarker = {
+          path: "M 0,-24 A 12,12 0 1,1 0,0 A 12,12 0 1,1 0,-24 Z M 0,-4 L 0,0",
+          fillColor: meta.darkColor,
+          fillOpacity: 0.9,
+          strokeWeight: 2,
+          strokeColor: "#ffffff",
+          scale: 1.2,
+          labelOrigin: new google.maps.Point(0, -12)
+        };
+
+        const marker = new google.maps.Marker({
+          position: position,
+          map: appState.mapInstance,
+          title: place.name,
+          draggable: true,
+          icon: svgMarker,
+          label: {
+            text: (index + 1).toString(),
+            color: "#ffffff",
+            fontWeight: "bold",
+            fontSize: "11px"
+          }
+        });
+
+        marker.addListener('dragend', (event) => {
+          const newLat = event.latLng.lat();
+          const newLng = event.latLng.lng();
+          updatePlaceLocation(place.id, newLat, newLng);
+        });
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div class="p-2 font-sans" style="min-width: 150px;">
+              <p class="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
+                <span class="inline-block w-4 h-4 rounded-full text-white text-[10px] text-center font-bold" style="background-color: ${meta.darkColor}">${index+1}</span>
+                ${place.name}
+              </p>
+              <p class="text-xs text-slate-500 mt-1">⏰ 시간: ${place.time}</p>
+              <p class="text-xs text-slate-500">💵 회비: ${place.cost.toLocaleString()}원</p>
+              <p class="text-xs text-purple-600 font-bold mt-1">🙋 동반: ${place.assignedMembers.join(', ') || '없음'}</p>
+            </div>
+          `
+        });
+
+        marker.addListener('click', () => {
+          infoWindow.open(appState.mapInstance, marker);
+        });
+
+        appState.mapMarkers.push(marker);
+      });
+
+      if (ordered.length > 1) {
+        const lineCoords = ordered.map(p => ({ lat: p.lat, lng: p.lng }));
+
+        const polyline = new google.maps.Polyline({
+          path: lineCoords,
+          geodesic: true,
+          strokeColor: '#3b82f6',
+          strokeOpacity: 0.8,
+          strokeWeight: 4,
+          map: appState.mapInstance
+        });
+
+        appState.mapPolylines.push(polyline);
+
+        let totalDistanceKm = 0;
+        for (let i = 1; i < ordered.length; i++) {
+          totalDistanceKm += calculateHaversineDistance(ordered[i-1], ordered[i]);
+        }
+        updateTransitMetrics(totalDistanceKm);
+      } else {
+        updateTransitMetrics(0);
+      }
+
+      if (ordered.length > 1) {
+        appState.mapInstance.fitBounds(bounds);
+      } else if (ordered.length === 1) {
+        appState.mapInstance.setCenter({ lat: ordered[0].lat, lng: ordered[0].lng });
+        appState.mapInstance.setZoom(13);
+      }
+    }
+
+    function updatePlaceLocation(id, lat, lng) {
+      const p = appState.places.find(item => item.id === id);
+      if (p) {
+        p.lat = parseFloat(lat.toFixed(6));
+        p.lng = parseFloat(lng.toFixed(6));
+        renderTimeline();
+        drawMapElements();
+        showFloatingToast(`"${p.name}"의 지리적 위치가 변경되었습니다.`);
+      }
+    }
+
+    function calculateHaversineDistance(p1, p2) {
+      const R = 6371;
+      const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+      const dLng = (p2.lng - p1.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function updateTransitMetrics(km) {
+      if (km === 0) {
+        document.getElementById('car-time').innerText = "0분";
+        document.getElementById('bike-time').innerText = "0분";
+        document.getElementById('walk-time').innerText = "0분";
+        return;
+      }
+
+      const carMinutes = Math.max(1, Math.round((km / 45) * 60));
+      const bikeMinutes = Math.max(1, Math.round((km / 14) * 60));
+      const walkMinutes = Math.max(1, Math.round((km / 4.2) * 60));
+
+      document.getElementById('car-time').innerText = `약 ${carMinutes}분 (${km.toFixed(1)}km)`;
+      document.getElementById('bike-time').innerText = `약 ${bikeMinutes}분 (${km.toFixed(1)}km)`;
+      document.getElementById('walk-time').innerText = `약 ${walkMinutes}분 (${km.toFixed(1)}km)`;
+    }
+
+    function selectCategory(cat) {
+      appState.selectedCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.classList.remove('ring-4', 'ring-pink-300', 'bg-white', 'border-pink-300');
+        btn.classList.add('bg-slate-50', 'border-slate-100');
+      });
+
+      const activeBtn = document.getElementById(`cat-${cat}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-slate-50', 'border-slate-100');
+        activeBtn.classList.add('ring-4', 'ring-pink-300', 'bg-white', 'border-pink-300');
+      }
+    }
+
+    function renderMembers() {
+      const container = document.getElementById('members-list');
+      if (!container) return;
+      container.innerHTML = "";
+      
+      const countEl = document.getElementById('member-count');
+      if (countEl) countEl.innerText = `${appState.members.length}명`;
+
+      if (appState.members.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 py-1">추가된 팀원이 없습니다.</p>`;
+        return;
+      }
+
+      appState.members.forEach((name) => {
+        const chip = document.createElement('div');
+        chip.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#E8D7FF]/60 text-purple-800 border border-purple-200/50 shadow-sm animate-fade-in";
+        chip.innerHTML = `
+          <span><i class="fa-solid fa-user-tag text-[10px]"></i> ${name}</span>
+          <button onclick="removeMember('${name}')" class="text-purple-600 hover:text-red-500 font-bold ml-1 transition">×</button>
+        `;
+        container.appendChild(chip);
+      });
+    }
+
+    function addMember() {
+      const input = document.getElementById('member-name-input');
+      if (!input) return;
+      const name = input.value.trim();
+      if (!name) return;
+
+      if (appState.members.includes(name)) {
+        showFloatingToast("이미 탑승한 팀원 이름입니다!");
+        return;
+      }
+
+      appState.members.push(name);
+      input.value = "";
+      
+      renderMembers();
+      renderNewPlaceMembersSelector();
+      renderTimeline();
+    }
+
+    function removeMember(name) {
+      appState.members = appState.members.filter(m => m !== name);
+      appState.places.forEach(p => {
+        p.assignedMembers = p.assignedMembers.filter(m => m !== name);
+      });
+
+      renderMembers();
+      renderNewPlaceMembersSelector();
+      renderTimeline();
+      drawMapElements();
+    }
+
+    function renderNewPlaceMembersSelector() {
+      const container = document.getElementById('place-members-selector');
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (appState.members.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-400 py-1.5">팀원을 먼저 생성해주세요</span>`;
+        return;
+      }
+
+      appState.members.forEach(name => {
+        const isSelected = appState.selectedMembersForNewPlace.includes(name);
+        const btn = document.createElement('button');
+        btn.type = "button";
+        btn.onclick = () => toggleSelectMemberForNewPlace(name);
+        btn.className = `px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 border ${
+          isSelected 
+            ? 'bg-[#CDE9FF] text-blue-800 border-blue-300' 
+            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100'
+        }`;
+        btn.innerHTML = `
+          <i class="fa-solid ${isSelected ? 'fa-check' : 'fa-plus'} text-[9px]"></i>
+          ${name}
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    function toggleSelectMemberForNewPlace(name) {
+      if (appState.selectedMembersForNewPlace.includes(name)) {
+        appState.selectedMembersForNewPlace = appState.selectedMembersForNewPlace.filter(n => n !== name);
+      } else {
+        appState.selectedMembersForNewPlace.push(name);
+      }
+      renderNewPlaceMembersSelector();
+    }
+
+    function addNewPlace() {
+      const nameInput = document.getElementById('place-name');
+      if (!nameInput) return;
+      const name = nameInput.value.trim();
+      if (!name) {
+        showFloatingToast("장소 이름을 입력해주세요! 📍");
+        return;
+      }
+
+      const time = document.getElementById('place-time').value.trim() || "시간 미정";
+      const costValue = document.getElementById('place-cost').value;
+      const cost = costValue ? parseInt(costValue, 10) : 0;
+      const memo = document.getElementById('place-memo').value.trim() || "메모 없음";
+
+      let assigned = [...appState.selectedMembersForNewPlace];
+      if (assigned.length === 0 && appState.members.length > 0) {
+        assigned = [...appState.members];
+      }
+
+      let baseLat = 35.1152;
+      let baseLng = 129.0422;
+      if (appState.mapInstance) {
+        baseLat = appState.mapInstance.getCenter().lat() + (Math.random() - 0.5) * 0.02;
+        baseLng = appState.mapInstance.getCenter().lng() + (Math.random() - 0.5) * 0.02;
+      }
+
+      const newPlace = {
+        id: 'place-' + Date.now(),
+        name,
+        category: appState.selectedCategory,
+        lat: parseFloat(baseLat.toFixed(6)),
+        lng: parseFloat(baseLng.toFixed(6)),
+        time,
+        cost,
+        memo,
+        assignedMembers: assigned
+      };
+
+      appState.places.push(newPlace);
+
+      nameInput.value = "";
+      document.getElementById('place-time').value = "";
+      document.getElementById('place-cost').value = "";
+      document.getElementById('place-memo').value = "";
+      appState.selectedMembersForNewPlace = [];
+
+      renderNewPlaceMembersSelector();
+      renderTimeline();
+      drawMapElements();
+      showFloatingToast(`"${name}" 코스가 실시간 라이브 맵에 핀으로 꽂혔습니다!`);
+    }
+
+    function quickCreatePlaceAtLatLng(lat, lng) {
+      const name = `📍 더블클릭 생성 코스 (${appState.places.length + 1})`;
+      const defaultCategory = appState.selectedCategory || "spot";
+      
+      const newPlace = {
+        id: 'place-' + Date.now(),
+        name,
+        category: defaultCategory,
+        lat: parseFloat(lat.toFixed(6)),
+        lng: parseFloat(lng.toFixed(6)),
+        time: "시간 미정",
+        cost: 0,
+        memo: "구글 지도를 더블클릭해 직접 등록한 라이브 핀입니다.",
+        assignedMembers: [...appState.members]
+      };
+
+      appState.places.push(newPlace);
+      
+      renderTimeline();
+      drawMapElements();
+      showFloatingToast(`지정하신 좌표에 파스텔 마커를 세웠습니다.`);
+    }
+
+    function addRecommendedPlaceToCourse(name, category, lat, lng, address) {
+      const newPlace = {
+        id: 'place-' + Date.now(),
+        name: name,
+        category: category,
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+        time: "방문 예정",
+        cost: 0,
+        memo: `구글 추천 장소: ${address}`,
+        assignedMembers: [...appState.members]
+      };
+
+      appState.places.push(newPlace);
+      renderTimeline();
+      drawMapElements();
+      showFloatingToast(`"${name}"가 타임라인 및 구글 라이브 맵에 안착했습니다!`);
+    }
+
+    function setRouteMode(mode) {
+      appState.routeMode = mode;
+      
+      document.querySelectorAll('.route-tab').forEach(btn => {
+        btn.classList.remove('bg-white', 'shadow-sm', 'text-slate-700');
+        btn.classList.add('text-slate-500', 'hover:text-slate-700');
+      });
+
+      const activeBtn = document.getElementById(`route-mode-${mode}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-500', 'hover:text-slate-700');
+        activeBtn.classList.add('bg-white', 'shadow-sm', 'text-slate-700');
+      }
+
+      const label = document.getElementById('route-type-label');
+      if (mode === 'optimal') {
+        label.innerHTML = "✨ 경로가 지그재그가 되지 않도록 최단거리 최적화 동선으로 정렬되었습니다.";
+      } else {
+        label.innerHTML = "📍 타임라인에 직접 정렬하신 시퀀스 순서대로의 동선입니다.";
+      }
+
+      drawMapElements();
+      renderTimeline();
+    }
+
+    function getOrderedPlaces() {
+      if (appState.places.length <= 1) return appState.places;
+
+      if (appState.routeMode === 'step') {
+        return appState.places;
+      }
+
+      const unvisited = [...appState.places];
+      const ordered = [];
+      
+      let current = unvisited.shift();
+      ordered.push(current);
+
+      while (unvisited.length > 0) {
+        let nearestIdx = 0;
+        let minDistance = Infinity;
+
+        for (let i = 0; i < unvisited.length; i++) {
+          const dist = calculateHaversineDistance(current, unvisited[i]);
+          if (dist < minDistance) {
+            minDistance = dist;
+            nearestIdx = i;
+          }
+        }
+
+        current = unvisited.splice(nearestIdx, 1)[0];
+        ordered.push(current);
+      }
+
+      return ordered;
+    }
+
+    function updateBriefing() {
+      const totalPlaces = appState.places.length;
+      const totalCost = appState.places.reduce((acc, curr) => acc + (curr.cost || 0), 0);
+
+      const totalPlacesEl = document.getElementById('total-places-summary');
+      const totalCostEl = document.getElementById('total-cost-summary');
+      
+      if (totalPlacesEl) totalPlacesEl.innerText = `${totalPlaces}개 코스`;
+      if (totalCostEl) totalCostEl.innerText = `${totalCost.toLocaleString()} 원`;
+    }
+
+    function clearAllPlaces() {
+      if (appState.places.length === 0) return;
+      if (confirm("정말로 모든 장소 코스를 비우시겠습니까?")) {
+        appState.places = [];
+        renderTimeline();
+        drawMapElements();
+        showFloatingToast("모든 여행 경로 일정이 초기화되었습니다.");
+      }
+    }
+
+    function deletePlace(id) {
+      appState.places = appState.places.filter(p => p.id !== id);
+      renderTimeline();
+      drawMapElements();
+    }
+
+    function updatePlaceField(id, field, value) {
+      const p = appState.places.find(item => item.id === id);
+      if (!p) return;
+
+      if (field === 'cost') {
+        p[field] = parseInt(value, 10) || 0;
+      } else {
+        p[field] = value;
+      }
+      updateBriefing();
+    }
+
+    function toggleMemberInPlace(placeId, name) {
+      const p = appState.places.find(item => item.id === placeId);
+      if (!p) return;
+
+      if (p.assignedMembers.includes(name)) {
+        p.assignedMembers = p.assignedMembers.filter(m => m !== name);
+      } else {
+        p.assignedMembers.push(name);
+      }
+      renderTimeline();
+      drawMapElements();
+    }
+
+    function movePlaceOrder(idx, direction) {
+      if (direction === 'up' && idx > 0) {
+        const temp = appState.places[idx];
+        appState.places[idx] = appState.places[idx - 1];
+        appState.places[idx - 1] = temp;
+      } else if (direction === 'down' && idx < appState.places.length - 1) {
+        const temp = appState.places[idx];
+        appState.places[idx] = appState.places[idx + 1];
+        appState.places[idx + 1] = temp;
+      }
+      renderTimeline();
+      drawMapElements();
+    }
+
+    function renderTimeline() {
+      const listContainer = document.getElementById('timeline-list');
+      if (!listContainer) return;
+      listContainer.innerHTML = "";
+
+      updateBriefing();
+
+      const ordered = getOrderedPlaces();
+
+      if (ordered.length === 0) {
+        listContainer.innerHTML = `
+          <div class="text-center py-12 text-slate-400">
+            <i class="fa-solid fa-map-location text-4xl mb-3 text-slate-200"></i>
+            <p class="text-sm font-semibold">아직 추가된 코스 일정이 없습니다.</p>
+            <p class="text-xs mt-1 text-slate-300">위 양식이나 지도를 클릭하여 일정을 꾸려보세요!</p>
+          </div>
+        `;
+        return;
+      }
+
+      ordered.forEach((place, index) => {
+        const meta = categoryMeta[place.category] || categoryMeta.etc;
+        const originalIndex = appState.places.findIndex(p => p.id === place.id);
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-50 rounded-2xl p-4 border border-slate-200/60 relative hover:shadow-md transition-all";
+        card.style.borderLeft = `5px solid ${meta.darkColor}`;
+
+        const isFirst = index === 0;
+        const isLast = index === ordered.length - 1;
+
+        card.innerHTML = `
+          <div class="flex flex-col sm:flex-row items-start justify-between gap-2.5">
+            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+              <span class="w-6 h-6 rounded-full text-white font-extrabold text-xs flex items-center justify-center flex-shrink-0" style="background-color: ${meta.darkColor}">
+                ${index + 1}
+              </span>
+              <span class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm" style="background-color: ${meta.color}">
+                <i class="fa-solid ${meta.icon}" style="color: ${meta.darkColor}"></i>
+              </span>
+              <div class="flex-1">
+                <input type="text" value="${place.name}" 
+                  onchange="updatePlaceField('${place.id}', 'name', this.value)"
+                  class="font-extrabold text-slate-700 bg-transparent hover:bg-white focus:bg-white border-b border-transparent hover:border-slate-300 focus:border-slate-400 outline-none px-1 py-0.5 w-full text-sm rounded transition"
+                  placeholder="장소 이름">
+                <p class="text-[10px] text-slate-400 mt-0.5">위경도: ${place.lat}, ${place.lng}</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 self-end sm:self-auto">
+              ${appState.routeMode === 'step' ? `
+                <button onclick="movePlaceOrder(${originalIndex}, 'up')" ${isFirst ? 'disabled' : ''} class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 disabled:opacity-30 transition">
+                  <i class="fa-solid fa-chevron-up text-xs"></i>
+                </button>
+                <button onclick="movePlaceOrder(${originalIndex}, 'down')" ${isLast ? 'disabled' : ''} class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 disabled:opacity-30 transition">
+                  <i class="fa-solid fa-chevron-down text-xs"></i>
+                </button>
+              ` : ''}
+              
+              <button onclick="deletePlace('${place.id}')" class="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-200/50">
+            <div>
+              <span class="text-[10px] text-slate-400 block font-semibold">🕐 예상 시간</span>
+              <input type="text" value="${place.time}" 
+                onchange="updatePlaceField('${place.id}', 'time', this.value)"
+                class="w-full text-xs text-slate-600 bg-white/70 px-2 py-1 rounded border border-slate-200/50 outline-none focus:bg-white mt-1">
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-semibold">💵 예상 경비 (원)</span>
+              <input type="number" value="${place.cost}" 
+                onchange="updatePlaceField('${place.id}', 'cost', this.value)"
+                class="w-full text-xs text-slate-600 bg-white/70 px-2 py-1 rounded border border-slate-200/50 outline-none focus:bg-white mt-1">
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-semibold">📝 코스 메모 / 할 일</span>
+              <input type="text" value="${place.memo}" 
+                onchange="updatePlaceField('${place.id}', 'memo', this.value)"
+                class="w-full text-xs text-slate-600 bg-white/70 px-2 py-1 rounded border border-slate-200/50 outline-none focus:bg-white mt-1">
+            </div>
+          </div>
+
+          <div class="mt-2.5 pt-2 border-t border-dashed border-slate-200/60 flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] text-slate-400 font-semibold mr-1">🙋 동반 팀원:</span>
+            ${appState.members.map(name => {
+              const isAssigned = place.assignedMembers.includes(name);
+              return `
+                <button onclick="toggleMemberInPlace('${place.id}', '${name}')" 
+                  class="text-[10px] px-2 py-0.5 rounded-full transition-all font-bold border ${
+                    isAssigned 
+                      ? 'bg-purple-100 text-purple-700 border-purple-200' 
+                      : 'bg-white text-slate-300 border-slate-100 hover:text-slate-400 hover:border-slate-200'
+                  }">
+                  ${name}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        `;
+        listContainer.appendChild(card);
+      });
+    }
+
+    async function fetchGoogleRecommendations() {
+      const locationInput = document.getElementById('recommendation-location');
+      if (!locationInput) return;
+      const location = locationInput.value.trim();
+      if (!location) {
+        showFloatingToast("추천을 원하시는 지역이나 키워드를 입력해 주세요! 🌸");
+        return;
+      }
+
+      const container = document.getElementById('recs-results-container');
+      const btn = document.getElementById('btn-fetch-recs');
+
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i> 추천 데이터 분석 중...`;
+      container.innerHTML = `
+        <div class="md:col-span-2 text-center py-12">
+          <div class="relative w-12 h-12 mx-auto mb-4">
+            <div class="absolute inset-0 rounded-full border-4 border-t-amber-500 border-r-transparent border-slate-200 animate-spin"></div>
+          </div>
+          <p class="text-sm font-bold text-slate-600">Gemini와 Google Search 기술을 가동하여</p>
+          <p class="text-xs text-slate-400 mt-1">"${location}"의 평점 높은 구글 리뷰 맛집 및 관광 명소를 물색 중입니다...</p>
+        </div>
+      `;
+
+      try {
+        const userQuery = `Find exactly 3 top highly-rated restaurants and 3 top highly-rated tourist attractions in '${location}' with genuine high ratings based on real Google reviews. For each place, you MUST estimate its actual latitude and longitude near the search location so it can be accurately plotted on a real Google map. Response MUST match the schema.`;
+        const systemPrompt = "You are a world-class travel planner assistant. You research the actual latest Google reviews using search tools, and compile a beautiful and highly curated list of recommendations with real ratings, coordinates, and catchy details.";
+        
+        const payload = {
+          contents: [{ parts: [{ text: userQuery }] }],
+          tools: [{ "google_search": {} }],
+          systemInstruction: {
+            parts: [{ text: systemPrompt }]
+          },
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                "results": {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      "name": { "type": "STRING" },
+                      "category": { "type": "STRING", "description": "Must be 'restaurant' or 'spot'" },
+                      "rating": { "type": "NUMBER", "description": "Google star rating like 4.7" },
+                      "reviews_count": { "type": "STRING", "description": "Approx reviews count like '1,200+'" },
+                      "address": { "type": "STRING" },
+                      "lat": { "type": "NUMBER" },
+                      "lng": { "type": "NUMBER" },
+                      "description": { "type": "STRING" }
+                    },
+                    "required": ["name", "category", "rating", "reviews_count", "address", "lat", "lng", "description"]
+                  }
+                }
+              }
+            }
+          }
+        };
+
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=`;
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("API call failed");
+
+        const data = await response.json();
+        const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!responseText) throw new Error("Empty response received");
+
+        const parsedData = JSON.parse(responseText);
+        renderRecommendations(parsedData.results || []);
+
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `
+          <div class="md:col-span-2 text-center py-8 text-red-500 border border-red-200 rounded-2xl bg-red-50">
+            <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
+            <p class="text-xs font-bold">실시간 분석 과정에 오류가 발생했습니다.</p>
+            <p class="text-[10px] text-slate-500 mt-1">잠시 후 다시 검색하시거나, 다른 지명을 시도해 보세요.</p>
+          </div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-bolt"></i> 구글리뷰 명소 추천 받기`;
+      }
+    }
+
+    function renderRecommendations(items) {
+      const container = document.getElementById('recs-results-container');
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `
+          <div class="md:col-span-2 text-center py-8 text-slate-400 border border-dashed border-slate-200 rounded-2xl bg-slate-50">
+            <p class="text-xs font-bold">해당 구역의 추천 결과가 확인되지 않았습니다.</p>
+          </div>
+        `;
+        return;
+      }
+
+      items.forEach(item => {
+        const isRestaurant = item.category === 'restaurant';
+        const badgeColor = isRestaurant ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-teal-100 text-teal-700 border-teal-200';
+        const badgeName = isRestaurant ? '맛집' : '관광지';
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group";
+        
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${badgeColor}">${badgeName}</span>
+              <span class="text-xs font-bold text-amber-500 flex items-center gap-1">
+                <i class="fa-solid fa-star"></i> ${item.rating} <span class="text-slate-400 font-normal">(${item.reviews_count})</span>
+              </span>
+            </div>
+            <h4 class="font-extrabold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">${item.name}</h4>
+            <p class="text-xs text-slate-500 mt-1 line-clamp-2">${item.description}</p>
+            <p class="text-[10px] text-slate-400 mt-2 truncate"><i class="fa-solid fa-location-dot"></i> ${item.address}</p>
+          </div>
+          <button onclick="addRecommendedPlaceToCourse('${item.name.replace(/'/g, "\\'")}', '${item.category}', ${item.lat}, ${item.lng}, '${item.address.replace(/'/g, "\\'")}')" 
+            class="w-full py-1.5 bg-slate-100 hover:bg-gradient-to-r hover:from-amber-100 hover:to-orange-100 hover:text-amber-800 text-slate-600 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1">
+            <i class="fa-solid fa-folder-plus text-[10px]"></i> 이 추천 코스 추가
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function showFloatingToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = "fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800/95 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl z-50 transition-all transform translate-y-2 opacity-0 flex items-center gap-2 border border-slate-700/60";
+      toast.innerHTML = `<i class="fa-solid fa-suitcase-rolling text-pink-300 animate-bounce"></i> <span>${msg}</span>`;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.transform = "translateX(-50%) translate-y-0";
+        toast.classList.remove('opacity-0');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        toast.style.transform = "translateX(-50%) translate-y-2";
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+
+    function openTutorial() {
+      document.getElementById('tutorial-modal').classList.remove('hidden');
+    }
+    function closeTutorial() {
+      document.getElementById('tutorial-modal').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
